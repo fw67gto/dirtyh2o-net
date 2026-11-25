@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0a0a0a">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Dirty H2O — Home hero drip (Format B v2)</title>
+  <style>
+    /* Dirty H2O Home hero drip.
+       Default: play once (~2.45s), then hold the settled logo.
+       ?reduce=1  — force settled state (same as prefers-reduced-motion: reduce)
+       ?capture=1&t=SECONDS — paused seek for frame export (JS)
+       Native prefers-reduced-motion is CSS-only and works if the iframe blocks JS. */
+    :root {
+      --bg0: #0a0a0a;
+      --bg1: #161616;
+      --teal: #aafef7;
+      --teal-soft: #b7e8e4;
+      --teal-dim: rgba(170, 254, 247, 0.55);
+      --once: 2.45s;
+      --loop: 5s;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* iframe-first: fill the Sites embed (or a normal tab). Do not use
+       min-height: 100vh — that causes inner scrollbars when the iframe is
+       shorter than the browser window, especially on mobile. */
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg0);
+      color: var(--teal);
+    }
+
+    body {
+      font-family: "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
+      overscroll-behavior: none;
+    }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: clamp(12px, 6vmin, 80px) 20px clamp(16px, 8vmin, 96px);
+      background:
+        radial-gradient(ellipse 90% 80% at 50% 42%, var(--bg1) 0%, var(--bg0) 72%);
+    }
+
+    .halftone {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background-image: radial-gradient(circle, rgba(168, 196, 196, 0.26) 0.9px, transparent 1.15px);
+      background-size: 7px 7px;
+      -webkit-mask-image: radial-gradient(ellipse 58% 52% at 50% 42%, transparent 38%, #000 100%);
+      mask-image: radial-gradient(ellipse 58% 52% at 50% 42%, transparent 38%, #000 100%);
+      opacity: 0.9;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .stage {
+      position: relative;
+      z-index: 1;
+      width: min(100%, 520px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .drip {
+      position: relative;
+      display: flex;
+      justify-content: center;
+      width: 100%;
+    }
+
+    .drop-motion {
+      transform-origin: 50% 100%;
+      will-change: transform, opacity;
+      /* pre-animation state avoids a settled-logo flash */
+      transform: translate3d(0, calc(-120vh - 80px), 0) scaleX(0.86) scaleY(1.22);
+      opacity: 0;
+      animation: drip-once var(--once) linear both;
+    }
+
+    .drop {
+      display: block;
+      width: clamp(200px, 64vw, 380px);
+      height: auto;
+      filter: drop-shadow(0 10px 22px rgba(0, 0, 0, 0.45));
+    }
+
+    .fx {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 0;
+      pointer-events: none;
+    }
+
+    .land-shadow {
+      position: absolute;
+      left: 50%;
+      bottom: -6px;
+      width: 58%;
+      height: 18px;
+      background: radial-gradient(ellipse, rgba(0, 0, 0, 0.65) 0%, transparent 70%);
+      transform: translateX(-50%) scale(0.2);
+      opacity: 0;
+      animation: shadow-once 0.55s ease-out 1.18s both;
+    }
+
+    .ripple {
+      position: absolute;
+      left: 50%;
+      bottom: 2px;
+      width: 42px;
+      height: 14px;
+      border: 2px solid var(--teal-dim);
+      border-radius: 50%;
+      transform: translateX(-50%) scale(0.25);
+      opacity: 0;
+      animation: ripple-once 0.85s ease-out 1.18s both;
+    }
+
+    .ripple.r2 {
+      width: 34px;
+      height: 12px;
+      border-width: 1.5px;
+      animation-delay: 1.32s;
+      animation-duration: 1.25s;
+    }
+
+    .type {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: -0.35rem;
+    }
+
+    .wordmark {
+      display: block;
+      width: clamp(240px, 84vw, 440px);
+      height: auto;
+      opacity: 0;
+      transform: translateY(14px);
+      animation: type-once 0.7s ease-out 1.55s both;
+    }
+
+    .tagline {
+      margin: 0;
+      text-align: center;
+      font-style: italic;
+      font-weight: 400;
+      letter-spacing: 0.08em;
+      opacity: 0;
+      transform: translateY(12px);
+    }
+
+    .t1 {
+      margin-top: 0.5rem;
+      font-size: clamp(1.05rem, 4.4vw, 1.7rem);
+      color: var(--teal);
+      animation: type-once 0.7s ease-out 1.72s both;
+    }
+
+    .t2 {
+      margin-top: 0.22rem;
+      font-size: clamp(0.95rem, 3.8vw, 1.42rem);
+      color: var(--teal-soft);
+      letter-spacing: 0.1em;
+      animation: type-once 0.7s ease-out 1.88s both;
+    }
+
+    /* —— once, then hold (Sites default) —— */
+    @keyframes drip-once {
+      0%   { transform: translate3d(0, calc(-120vh - 80px), 0) scaleX(0.86) scaleY(1.22); opacity: 0; }
+      5%   { transform: translate3d(0, calc(-100vh - 40px), 0) scaleX(0.86) scaleY(1.22); opacity: 1; }
+      16%  { transform: translate3d(0, -78vh, 0) scaleX(0.88) scaleY(1.20); opacity: 1; }
+      28%  { transform: translate3d(0, -52vh, 0) scaleX(0.90) scaleY(1.16); opacity: 1; }
+      38%  { transform: translate3d(0, -26vh, 0) scaleX(0.93) scaleY(1.12); opacity: 1; }
+      46%  { transform: translate3d(0, -7vh, 0) scaleX(0.97) scaleY(1.06); opacity: 1; }
+      51%  { transform: translate3d(0, 0, 0) scaleX(1) scaleY(1); opacity: 1; }
+      58%  { transform: translate3d(0, 11px, 0) scaleX(1.16) scaleY(0.80); opacity: 1; }
+      68%  { transform: translate3d(0, -13px, 0) scaleX(0.94) scaleY(1.08); opacity: 1; }
+      78%  { transform: translate3d(0, 5px, 0) scaleX(1.04) scaleY(0.96); opacity: 1; }
+      88%  { transform: translate3d(0, -3px, 0) scaleX(0.99) scaleY(1.02); opacity: 1; }
+      100% { transform: translate3d(0, 0, 0) scaleX(1) scaleY(1); opacity: 1; }
+    }
+
+    @keyframes type-once {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes ripple-once {
+      0%   { opacity: 0; transform: translateX(-50%) scale(0.25); }
+      20%  { opacity: 0.55; }
+      100% { opacity: 0; transform: translateX(-50%) scale(2.6); }
+    }
+
+    @keyframes shadow-once {
+      from { opacity: 0; transform: translateX(-50%) scale(0.2); }
+      to   { opacity: 1; transform: translateX(-50%) scale(1); }
+    }
+
+    html.loop .drop-motion {
+      animation: drip-loop var(--loop) linear infinite;
+    }
+    html.loop .land-shadow {
+      animation: shadow-loop var(--loop) linear infinite;
+    }
+    html.loop .ripple {
+      animation: ripple-loop var(--loop) linear infinite;
+    }
+    html.loop .ripple.r2 {
+      animation-name: ripple-loop-b;
+    }
+    html.loop .wordmark {
+      animation: type-loop var(--loop) linear infinite;
+    }
+    html.loop .t1 {
+      animation: type-loop-b var(--loop) linear infinite;
+    }
+    html.loop .t2 {
+      animation: type-loop-c var(--loop) linear infinite;
+    }
+
+    /* Fall occupies 0–49% of 5s (~0–2.45s), matching drip-once timing. */
+    @keyframes drip-loop {
+      0%   { transform: translate3d(0, calc(-120vh - 80px), 0) scaleX(0.86) scaleY(1.22); opacity: 0; }
+      2.5% { transform: translate3d(0, calc(-100vh - 40px), 0) scaleX(0.86) scaleY(1.22); opacity: 1; }
+      8%   { transform: translate3d(0, -78vh, 0) scaleX(0.88) scaleY(1.20); opacity: 1; }
+      14%  { transform: translate3d(0, -52vh, 0) scaleX(0.90) scaleY(1.16); opacity: 1; }
+      19%  { transform: translate3d(0, -26vh, 0) scaleX(0.93) scaleY(1.12); opacity: 1; }
+      22.5%{ transform: translate3d(0, -7vh, 0) scaleX(0.97) scaleY(1.06); opacity: 1; }
+      25%  { transform: translate3d(0, 0, 0) scaleX(1) scaleY(1); opacity: 1; }
+      28.4%{ transform: translate3d(0, 11px, 0) scaleX(1.16) scaleY(0.80); opacity: 1; }
+      33.3%{ transform: translate3d(0, -13px, 0) scaleX(0.94) scaleY(1.08); opacity: 1; }
+      38.2%{ transform: translate3d(0, 5px, 0) scaleX(1.04) scaleY(0.96); opacity: 1; }
+      43.1%{ transform: translate3d(0, -3px, 0) scaleX(0.99) scaleY(1.02); opacity: 1; }
+      49%  { transform: translate3d(0, 0, 0) scaleX(1) scaleY(1); opacity: 1; }
+      82%  { transform: translate3d(0, 0, 0) scaleX(1) scaleY(1); opacity: 1; }
+      90%  { transform: translate3d(0, 0, 0) scaleX(1) scaleY(1); opacity: 0; }
+      92%  { transform: translate3d(0, calc(-120vh - 80px), 0) scaleX(0.86) scaleY(1.22); opacity: 0; }
+      100% { transform: translate3d(0, calc(-120vh - 80px), 0) scaleX(0.86) scaleY(1.22); opacity: 0; }
+    }
+
+    @keyframes type-loop {
+      0%, 30%   { opacity: 0; transform: translateY(14px); }
+      44%       { opacity: 1; transform: translateY(0); }
+      82%       { opacity: 1; transform: translateY(0); }
+      90%, 100% { opacity: 0; transform: translateY(8px); }
+    }
+    @keyframes type-loop-b {
+      0%, 33%   { opacity: 0; transform: translateY(12px); }
+      47%       { opacity: 1; transform: translateY(0); }
+      82%       { opacity: 1; transform: translateY(0); }
+      90%, 100% { opacity: 0; transform: translateY(8px); }
+    }
+    @keyframes type-loop-c {
+      0%, 36%   { opacity: 0; transform: translateY(12px); }
+      50%       { opacity: 1; transform: translateY(0); }
+      82%       { opacity: 1; transform: translateY(0); }
+      90%, 100% { opacity: 0; transform: translateY(8px); }
+    }
+
+    @keyframes shadow-loop {
+      0%, 23%   { opacity: 0; transform: translateX(-50%) scale(0.2); }
+      34%, 82%  { opacity: 1; transform: translateX(-50%) scale(1); }
+      90%, 100% { opacity: 0; transform: translateX(-50%) scale(0.2); }
+    }
+
+    @keyframes ripple-loop {
+      0%, 23.5% { opacity: 0; transform: translateX(-50%) scale(0.25); }
+      27%       { opacity: 0.55; transform: translateX(-50%) scale(1.0); }
+      38%       { opacity: 0; transform: translateX(-50%) scale(2.6); }
+      38.01%, 100% { opacity: 0; transform: translateX(-50%) scale(0.25); }
+    }
+    @keyframes ripple-loop-b {
+      0%, 26%   { opacity: 0; transform: translateX(-50%) scale(0.25); }
+      30%       { opacity: 0.45; transform: translateX(-50%) scale(1.0); }
+      40%       { opacity: 0; transform: translateX(-50%) scale(2.6); }
+      40.01%, 100% { opacity: 0; transform: translateX(-50%) scale(0.25); }
+    }
+
+    /* Frame capture: pause and seek with --t (seconds). Use with .loop. */
+    html.capture .drop-motion,
+    html.capture .land-shadow,
+    html.capture .ripple,
+    html.capture .wordmark,
+    html.capture .t1,
+    html.capture .t2 {
+      animation-play-state: paused !important;
+      animation-delay: calc(var(--t, 0) * -1s) !important;
+      animation-iteration-count: 1 !important;
+      animation-fill-mode: both !important;
+    }
+
+    /* Phone (~390px) and short Sites embeds: keep logo + both taglines on screen. */
+    @media (max-width: 430px) {
+      .hero { padding: clamp(10px, 5vmin, 40px) 16px clamp(12px, 6vmin, 48px); }
+      .drop { width: clamp(200px, 62vw, 280px); }
+      .wordmark { width: clamp(240px, 86vw, 340px); }
+    }
+
+    @media (max-height: 560px) {
+      .hero { padding: 10px 16px 14px; }
+      .drop { width: clamp(150px, 38vh, 260px); }
+      .wordmark { width: clamp(200px, 70vw, 340px); }
+      .t1 { font-size: clamp(0.95rem, 3.6vh, 1.25rem); margin-top: 0.35rem; }
+      .t2 { font-size: clamp(0.88rem, 3.2vh, 1.1rem); }
+    }
+
+    /* Reduced motion: static centered logo, no drop, no ripple.
+       Must win over ?loop=1. CSS-only so it works if Sites blocks scripts. */
+    @media (prefers-reduced-motion: reduce) {
+      .drop-motion,
+      .land-shadow,
+      .ripple,
+      .wordmark,
+      .t1,
+      .t2 {
+        animation: none !important;
+        opacity: 1 !important;
+      }
+      .drop-motion {
+        transform: none !important;
+        will-change: auto;
+      }
+      .wordmark, .t1, .t2 { transform: none !important; }
+      .ripple { display: none !important; }
+      .land-shadow {
+        opacity: 1 !important;
+        transform: translateX(-50%) scale(1) !important;
+      }
+    }
+
+    html.reduce .drop-motion,
+    html.reduce .land-shadow,
+    html.reduce .ripple,
+    html.reduce .wordmark,
+    html.reduce .t1,
+    html.reduce .t2 {
+      animation: none !important;
+      opacity: 1 !important;
+    }
+    html.reduce .drop-motion {
+      transform: none !important;
+      will-change: auto;
+    }
+    html.reduce .wordmark,
+    html.reduce .t1,
+    html.reduce .t2 { transform: none !important; }
+    html.reduce .ripple { display: none !important; }
+    html.reduce .land-shadow {
+      opacity: 1 !important;
+      transform: translateX(-50%) scale(1) !important;
+    }
+  </style>
+</head>
+<body>
+  <main class="hero">
+    <div class="halftone" aria-hidden="true"></div>
+    <h1 class="sr-only">Dirty H2O</h1>
+    <div class="stage">
+      <div class="drip">
+        <div class="drop-motion">
+          <!-- Cropped from official dirty-h2o-logo-v2-smooth.svg (droplet only). -->
+          <img class="drop" src="dirty-h2o-drop.svg" alt="">
+        </div>
+        <div class="fx" aria-hidden="true">
+          <div class="land-shadow"></div>
+          <div class="ripple r1"></div>
+          <div class="ripple r2"></div>
+        </div>
+      </div>
+      <div class="type">
+        <!-- Cropped from official dirty-h2o-logo-v2-smooth.svg (wordmark only). -->
+        <img class="wordmark" src="dirty-h2o-wordmark.svg" alt="">
+        <p class="tagline t1">Virtual Meets Reality</p>
+        <p class="tagline t2">Always Thirsty</p>
+      </div>
+    </div>
+  </main>
+  <script>
+    (function () {
+      var q = new URLSearchParams(location.search);
+      var root = document.documentElement;
+      if (q.has("loop") && q.get("loop") !== "0") root.classList.add("loop");
+      if (q.has("reduce") && q.get("reduce") !== "0") root.classList.add("reduce");
+      if (q.has("capture")) root.classList.add("capture", "loop");
+      if (q.has("t")) root.style.setProperty("--t", q.get("t"));
+      var drop = document.querySelector(".drop-motion");
+      if (drop) {
+        drop.addEventListener("animationend", function () {
+          if (!root.classList.contains("loop")) drop.style.willChange = "auto";
+        });
+      }
+    })();
+  </script>
+</body>
+</html>

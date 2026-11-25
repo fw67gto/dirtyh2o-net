@@ -1,0 +1,5 @@
+# Old Google Sites paths -> new clean paths
+/home / 301
+/view/dirtyh2o/home / 301
+/view/dirtyh2o/* /:splat/ 301
+/octu /privacy/ 301
